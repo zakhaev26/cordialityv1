@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Client</title>
+</head>
+<body>
+    <h1>WebSocket Client</h1>
+    <div id="messages"></div>
+    <form id="messageForm">
+        <input type="text" id="messageInput" placeholder="Enter message">
+        <button type="submit">Send</button>
+    </form>
+
+    <script>
+        // WebSocket connection URL
+        const socketUrl = 'ws://localhost:8080/channel-join';
+
+        // Create WebSocket connection
+        const socket = new WebSocket(socketUrl);
+
+        // Display incoming messages
+        socket.addEventListener('message', function(event) {
+            const message = event.data;
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `<p>Received: ${message}</p>`;
+        });
+
+        // Handle form submission
+        document.getElementById('messageForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value;
+            socket.send(message);
+            messageInput.value = ''; // Clear input field
+        });
+    </script>
+</body>
+</html>
