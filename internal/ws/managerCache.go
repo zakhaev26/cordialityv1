@@ -20,20 +20,14 @@ func NewManagerCache() *ManagerCache {
 func (mc *ManagerCache) GetManager(name string) *Manager {
 	mc.RLock()
 	defer mc.RUnlock()
-	manager, ok := mc.cache[name]
-	if !ok {
-		log.Info("Creating Debug Manager")
-		m := NewManager("root")
-		mc.cache["root"] = m
-		return m
-	}
-	log.Info("CACHE HIT!")
+	manager := mc.cache[name] //making sure database is the single source of truth 
 	return manager
 }
 
 func (mc *ManagerCache) SetManager(name string, manager *Manager) {
 	mc.Lock()
 	defer mc.Unlock()
+	log.Info("Creating a New Manager on Server's RAM")
 	mc.cache[name] = manager
 }
 

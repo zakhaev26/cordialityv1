@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -22,12 +23,14 @@ type Manager struct {
 	name       string
 	clientList ClientList
 	sync.RWMutex
+	BirthTime time.Time
 }
 
 func NewManager(managerName string) *Manager {
 	return &Manager{
 		name:       managerName,
 		clientList: make(ClientList),
+		BirthTime:  time.Now(),
 	}
 }
 
@@ -48,7 +51,7 @@ func (m *Manager) removeClient(client *Client) {
 	}
 }
 
-func (m *Manager) ServeWS(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) ServeWS(w http.ResponseWriter, r *http.Request, TTL time.Time) {
 	log.Println("New Connection")
 
 	conn, err := websocketUpgrader.Upgrade(w, r, nil)
@@ -57,9 +60,11 @@ func (m *Manager) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Calculate remaining time based on TTY
+
 	client := NewClient(conn, m)
 	m.addClient(client)
 
-	go client.readMessages()
-	go client.writeMessages()
+	go client.readMessages(TTL)
+	go client.writeMessages(TTL)
 }

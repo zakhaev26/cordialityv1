@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSocket Client</title>
 </head>
+
 <body>
     <h1>WebSocket Client</h1>
     <div id="messages"></div>
+
+    <input type="text" id="chanName" placeholder="Enter Channel Name">
+    <input type="text" id="password" placeholder="Enter password">
+
     <form id="messageForm">
         <input type="text" id="messageInput" placeholder="Enter message">
         <button type="submit">Send</button>
@@ -15,26 +21,51 @@
 
     <script>
         // WebSocket connection URL
-        const socketUrl = 'ws://localhost:8080/channel-join';
+        const channelNameInput = document.getElementById('chanName');
+        const passwordInput = document.getElementById('password');
+        const messageInput = document.getElementById('messageInput');
+        const messagesDiv = document.getElementById('messages');
 
-        // Create WebSocket connection
-        const socket = new WebSocket(socketUrl);
+        let socket = null;
 
-        // Display incoming messages
-        socket.addEventListener('message', function(event) {
-            const message = event.data;
-            const messagesDiv = document.getElementById('messages');
-            messagesDiv.innerHTML += `<p>Received: ${message}</p>`;
-        });
+        // Function to establish WebSocket connection
+        function establishWebSocketConnection() {
+            const channelName = channelNameInput.value;
+            const password = passwordInput.value;
+
+            const socketUrl = `ws://localhost:8080/channel?channelName=kashmirx&password=deezBalls`;
+            socket = new WebSocket(socketUrl);
+
+            // Display incoming messages
+            socket.addEventListener('message', function (event) {
+                const receivedMessage = event.data;
+                messagesDiv.innerHTML += `<p>Received: ${receivedMessage}</p>`;
+            });
+        }
 
         // Handle form submission
-        document.getElementById('messageForm').addEventListener('submit', function(event) {
+        document.getElementById('messageForm').addEventListener('submit', function (event) {
             event.preventDefault();
-            const messageInput = document.getElementById('messageInput');
+
             const message = messageInput.value;
-            socket.send(message);
-            messageInput.value = ''; // Clear input field
+
+            // If WebSocket connection is not established, create a new one
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                establishWebSocketConnection();
+            }
+
+            // Send message if connection is open
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(message);
+                messageInput.value = ''; // Clear input field
+            } else {
+                console.log('WebSocket connection is not open yet.');
+            }
         });
+
+        // Establish WebSocket connection on page load
+        window.addEventListener('load', establishWebSocketConnection);
     </script>
 </body>
+
 </html>

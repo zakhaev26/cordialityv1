@@ -3,6 +3,7 @@ package ws
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -23,7 +24,7 @@ func NewClient(c *websocket.Conn, m *Manager) *Client {
 	}
 }
 
-func (c *Client) readMessages() {
+func (c *Client) readMessages(TTL time.Time) {
 
 	defer func() {
 		c.manager.removeClient(c)
@@ -31,6 +32,11 @@ func (c *Client) readMessages() {
 	}()
 
 	for {
+		if time.Since(c.manager.BirthTime) >= time.Minute {
+			return
+		}
+
+		fmt.Println(time.Since(c.manager.BirthTime))
 		_, msg, err := c.connection.ReadMessage()
 
 		if err != nil {
@@ -45,18 +51,17 @@ func (c *Client) readMessages() {
 	}
 }
 
-func (c *Client) writeMessages() {
+func (c *Client) writeMessages(TTL time.Time) {
 	defer func() {
 		c.manager.removeClient(c)
 	}()
 
-	// consumer, _ := kafka.Consumer("deez")
-
-	go func() {
-		log.Println("uhm in go thread running kafka dawg")
-	}()
-
 	for {
+		if time.Since(c.manager.BirthTime) >= time.Minute {
+			fmt.Println("TTL exceeded.Self Destructing Manager")
+			return
+		}
+		fmt.Println(time.Since(c.manager.BirthTime))
 		select {
 		case msg, ok := <-c.egress:
 			if !ok {
@@ -72,7 +77,6 @@ func (c *Client) writeMessages() {
 					return
 				}
 			}
-
 			log.Println("sent message ; clientList length =", len(c.manager.clientList))
 		}
 	}

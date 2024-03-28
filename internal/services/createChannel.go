@@ -1,6 +1,8 @@
 package services
 
 import (
+	"time"
+
 	"github.com/fuckthinkpad/internal/db"
 	"github.com/fuckthinkpad/internal/schemas"
 )
@@ -16,6 +18,7 @@ func CreateChannelService(reqBody struct {
 		Password:    reqBody.Password,
 		ManagerName: managerName,
 		OwnerSlug:   reqBody.OwnerSlug,
+		TTL: time.Now(),
 	}
 
 	res := db.Db.Create(&channel)

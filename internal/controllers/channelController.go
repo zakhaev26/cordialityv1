@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/charmbracelet/log"
@@ -10,19 +11,18 @@ import (
 	"github.com/fuckthinkpad/internal/ws"
 )
 
-// func ChannelMasterController(w http.ResponseWriter, r *http.Request) {
+func ChannelMasterController(w http.ResponseWriter, r *http.Request) {
 
-// 	if r.Method == "GET" {
-// 		createChannel(w, r)
-// 	}
+	if r.Method == "POST" {
+		createChannel(w, r)
+	}
 
-// 	if r.Method == "GET" {
-// 		getChannels(w, r)
-// 	}
+	if r.Method == "GET" {
+		joinChannel(w, r)
+	}
+}
 
-// }
-
-func CreateChannel(w http.ResponseWriter, r *http.Request) {
+func createChannel(w http.ResponseWriter, r *http.Request) {
 	var (
 		reqBody struct {
 			ChannelName string `json:"channelName,omitempty"`
@@ -35,50 +35,55 @@ func CreateChannel(w http.ResponseWriter, r *http.Request) {
 		log.Warn("JSON Parsing error", "err", err)
 		return
 	}
+
 	managerName := utils.PetNameGen()
 	if err := services.CreateChannelService(reqBody, managerName); err != nil {
 		log.Warn("Error Inserting in Database", "err", err)
 		return
 	}
 
-	//create WS Connection
-	m := ws.NewManager(managerName)
-	ws.MasterManager.SetManager(managerName, m)
+	//create a Manager in the server's RAM
+	ws.MasterManager.SetManager(managerName, ws.NewManager(managerName))
 
-	//check if manager exists
-	m.ServeWS(w, r)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":  "room created",
+		"room-url": "GET " + r.URL.Host + "/channel?channelName=" + reqBody.ChannelName + "&password=" + reqBody.Password,
+	})
 }
 
-func GetChannels(w http.ResponseWriter, r *http.Request) {
+func joinChannel(w http.ResponseWriter, r *http.Request) {
 
-	// var (
-	// 	reqBody struct {
-	// 		ChannelName string `json:"channelName,omitempty"`
-	// 		Password    string `json:"password,omitempty"`
-	// 	}
-	// )
+	var (
+		reqQuery struct {
+			ChannelName string
+			Password    string
+		}
+	)
 
-	// fmt.Println(r.URL.Query())
+	reqQuery.ChannelName = r.URL.Query().Get("channelName")
+	reqQuery.Password = r.URL.Query().Get("password")
 
-	// if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-	// 	log.Warn("JSON Parsing error", "err", err)
-	// 	return
-	// }
+	if reqQuery.Password == "" || reqQuery.ChannelName == "" {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "Channel name and password is required!",
+		})
+		return
+	}
 
-	// ch, err := services.GetChannelService(reqBody)
-	// if err != nil {
-	// 	log.Warn("Error Querying Database", "err", err)
-	// 	return
-	// }
+	ch, err := services.GetChannelService(reqQuery.ChannelName)
+	if err != nil {
+		log.Warn("Error Querying Database", "err", err)
+		return
+	}
+	fmt.Println("ack - ", ch)
+	if ch.Password != reqQuery.Password {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "Room Authentication failed.Disallowed",
+		})
+		return
+	}
 
-	// if ch.Password != reqBody.Password {
-	// 	json.NewEncoder(w).Encode(map[string]interface{}{
-	// 		"message": "Room Authentication failed.Disallowed",
-	// 	})
-	// 	return
-	// }
-
-	// join to the main server
-	m := ws.MasterManager.GetManager("root")
-	m.ServeWS(w, r)
+	//valid request,join to the server RAM pool of managers
+	m := ws.MasterManager.GetManager(ch.ManagerName)
+	m.ServeWS(w, r,ch.TTL)
 }

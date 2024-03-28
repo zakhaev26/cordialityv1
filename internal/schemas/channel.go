@@ -15,9 +15,11 @@ type Channel struct {
 	ManagerName string
 	UpdatedAt   time.Time
 	CreatedAt   time.Time
+	TTL         time.Time
 }
 
 func (ch *Channel) BeforeCreate(tx *gorm.DB) (err error) {
 	ch.ID = uuid.New()
+	ch.TTL = time.Now().Add(time.Minute)
 	return
 }

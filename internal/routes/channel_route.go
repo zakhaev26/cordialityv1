@@ -10,8 +10,6 @@ func Routes() *mux.Router {
 
 	var r *mux.Router = mux.NewRouter()
 	r.Use(middlewares.LoggerMiddleware)
-	r.HandleFunc("/channel-create", controllers.CreateChannel)
-	r.HandleFunc("/channel-join", controllers.GetChannels)
-
+	r.HandleFunc("/channel", controllers.ChannelMasterController)
 	return r
 }

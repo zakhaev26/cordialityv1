@@ -2,9 +2,11 @@ package db
 
 import (
 	"os"
+	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/fuckthinkpad/internal/schemas"
+	"github.com/fuckthinkpad/internal/ws"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -30,4 +32,26 @@ func init() {
 		return
 	}
 	log.Info("Migrations Successful")
+
+	//re-generate all the channels
+	channels := FindAllChannels()
+
+	for _, v := range channels {
+		// if time.Until(v.TTL) <  {
+
+		// }
+		ws.MasterManager.SetManager(v.ManagerName, ws.NewManager(v.ManagerName))
+		log.Info("Reincarted", "Channel", v.ChannelName)
+	}
+}
+
+func FindAllChannels() []schemas.Channel {
+	var channels []schemas.Channel
+
+	if res := Db.Where("ttl > ?", time.Now()).Find(&channels); res.Error != nil {
+		log.Warn("Reincarnation Failed!")
+		os.Exit(1)
+	}
+
+	return channels
 }
