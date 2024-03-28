@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/fuckthinkpad/internal/services"
@@ -75,7 +76,16 @@ func joinChannel(w http.ResponseWriter, r *http.Request) {
 		log.Warn("Error Querying Database", "err", err)
 		return
 	}
+
 	fmt.Println("ack - ", ch)
+
+	if time.Now().After(ch.TTL) {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "channel death due to ttl",
+		})
+		return
+	}
+
 	if ch.Password != reqQuery.Password {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"message": "Room Authentication failed.Disallowed",

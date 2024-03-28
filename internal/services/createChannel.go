@@ -18,7 +18,7 @@ func CreateChannelService(reqBody struct {
 		Password:    reqBody.Password,
 		ManagerName: managerName,
 		OwnerSlug:   reqBody.OwnerSlug,
-		TTL: time.Now(),
+		TTL:         time.Now().Add(time.Hour),
 	}
 
 	res := db.Db.Create(&channel)

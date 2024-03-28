@@ -32,7 +32,7 @@ func (c *Client) readMessages(TTL time.Time) {
 	}()
 
 	for {
-		if time.Since(c.manager.BirthTime) >= time.Minute {
+		if time.Since(c.manager.BirthTime) >= time.Hour {
 			return
 		}
 
@@ -57,7 +57,7 @@ func (c *Client) writeMessages(TTL time.Time) {
 	}()
 
 	for {
-		if time.Since(c.manager.BirthTime) >= time.Minute {
+		if time.Since(c.manager.BirthTime) >= time.Hour {
 			fmt.Println("TTL exceeded.Self Destructing Manager")
 			return
 		}
@@ -71,10 +71,12 @@ func (c *Client) writeMessages(TTL time.Time) {
 				}
 				return
 			}
+
 			for xc := range c.manager.clientList {
-				if err := xc.connection.WriteMessage(websocket.TextMessage, msg); err != nil {
-					log.Println("error in writing mesage to client : ", err)
-					return
+				if xc != c {
+					if err := xc.connection.WriteMessage(websocket.TextMessage, msg); err != nil {
+						log.Println("error writing message to client:", err)
+					}
 				}
 			}
 			log.Println("sent message ; clientList length =", len(c.manager.clientList))
